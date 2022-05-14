@@ -1,0 +1,12 @@
+POST http://localhost:8080/hotel/multiQuery
+Content-Type: application/json
+
+{
+  "brandAndName": "",
+  "city": "",
+  "brand": "",
+  "starName": "五钻",
+  "priceFrom": "300",
+  "priceTo": "1000"
+}
+###

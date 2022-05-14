@@ -1,24 +1,29 @@
 package com.genn.es;
 
 import com.alibaba.fastjson.JSONObject;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.ObjectWriter;
-import com.genn.es.Repository.HotelMapper;
+import com.genn.es.repository.HotelMapper;
+import com.genn.es.dto.EsResponse;
 import com.genn.es.entity.Hotel;
 import com.genn.es.es.HotelEsDTO;
+import org.apache.lucene.search.TotalHits;
 import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.index.IndexResponse;
+import org.elasticsearch.action.search.SearchRequest;
+import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestHighLevelClient;
 import org.elasticsearch.client.indices.CreateIndexRequest;
 import org.elasticsearch.common.xcontent.XContentType;
+import org.elasticsearch.index.query.QueryBuilders;
+import org.elasticsearch.search.SearchHit;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
 import java.io.IOException;
+import java.util.LinkedList;
 import java.util.List;
 
 @SpringBootTest
@@ -80,5 +85,35 @@ public class EsRelearnTest {
         }
         BulkResponse bulk = restHighLevelClient.bulk(bulkRequest, RequestOptions.DEFAULT);
         System.out.println(JSONObject.toJSONString(bulk));
+    }
+
+    @Test
+    public void TestNormalQuery() throws IOException {
+        SearchRequest request = new SearchRequest("hotel");
+        request.source().
+                query(
+                        QueryBuilders.matchQuery(
+                                "name", "上海"
+                        )
+                );
+        SearchResponse response = restHighLevelClient.search(request, RequestOptions.DEFAULT);
+        EsResponse<HotelEsDTO> hotelEsDTOEsResponse = analysisResponse(response, HotelEsDTO.class);
+        System.out.println(JSONObject.toJSONString(hotelEsDTOEsResponse));
+    }
+
+    public <T> EsResponse<T> analysisResponse(SearchResponse response, Class<T> returnType){
+        EsResponse result = new EsResponse();
+        SearchHit[] hits = response.getHits().getHits();
+        TotalHits totalHits = response.getHits().getTotalHits();
+        result.setTotal(totalHits.value);
+
+        List<T> payload = new LinkedList<>();
+        for (SearchHit hit : hits) {
+            String sourceAsString = hit.getSourceAsString();
+            T t = JSONObject.parseObject(sourceAsString, returnType);
+            payload.add(t);
+        }
+        result.setPayload(payload);
+        return result;
     }
 }

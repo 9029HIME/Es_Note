@@ -1,4 +1,4 @@
-package com.genn.es.Repository;
+package com.genn.es.repository;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.genn.es.entity.Hotel;

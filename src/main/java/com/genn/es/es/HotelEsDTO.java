@@ -1,8 +1,9 @@
 package com.genn.es.es;
 
+import com.genn.es.common.GeoResult;
 import com.genn.es.entity.Hotel;
 
-public class HotelEsDTO {
+public class HotelEsDTO extends GeoResult {
     private HotelEsDTO(){}
 
     private Long id;
@@ -16,6 +17,7 @@ public class HotelEsDTO {
     private String business;
     private String location;
     private String pic;
+    private String advertiseAmount;
 
 
     public static HotelEsDTO getEsDto(Hotel hotel){
@@ -32,6 +34,14 @@ public class HotelEsDTO {
         esDTO.setLocation(String.format("%s,%s",hotel.getLatitude(), hotel.getLongitude()));
         esDTO.setId(hotel.getId());
         return esDTO;
+    }
+
+    public String getAdvertiseAmount() {
+        return advertiseAmount;
+    }
+
+    public void setAdvertiseAmount(String advertiseAmount) {
+        this.advertiseAmount = advertiseAmount;
     }
 
     public Long getId() {
