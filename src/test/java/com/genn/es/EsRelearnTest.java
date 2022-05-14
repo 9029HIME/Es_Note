@@ -18,6 +18,10 @@ import org.elasticsearch.client.indices.CreateIndexRequest;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.search.SearchHit;
+import org.elasticsearch.search.aggregations.AggregationBuilders;
+import org.elasticsearch.search.aggregations.Aggregations;
+import org.elasticsearch.search.aggregations.bucket.terms.Terms;
+import org.elasticsearch.search.aggregations.metrics.Stats;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -35,7 +39,7 @@ public class EsRelearnTest {
 
 
     @Test
-    public void testSelect(){
+    public void testSelect() {
         Hotel hotel = hotelMapper.selectById(38665L);
         System.out.println(hotel);
     }
@@ -44,6 +48,7 @@ public class EsRelearnTest {
 
     /**
      * 新建索引
+     *
      * @throws IOException
      */
     @Test
@@ -56,6 +61,7 @@ public class EsRelearnTest {
 
     /**
      * 新建文档
+     *
      * @throws IOException
      */
     @Test
@@ -81,7 +87,7 @@ public class EsRelearnTest {
             HotelEsDTO esDto = HotelEsDTO.getEsDto(hotel);
             bulkRequest.add(new IndexRequest("hotel")
                     .id(String.valueOf(esDto.getId()))
-                    .source(JSONObject.toJSONString(esDto),XContentType.JSON));
+                    .source(JSONObject.toJSONString(esDto), XContentType.JSON));
         }
         BulkResponse bulk = restHighLevelClient.bulk(bulkRequest, RequestOptions.DEFAULT);
         System.out.println(JSONObject.toJSONString(bulk));
@@ -101,7 +107,7 @@ public class EsRelearnTest {
         System.out.println(JSONObject.toJSONString(hotelEsDTOEsResponse));
     }
 
-    public <T> EsResponse<T> analysisResponse(SearchResponse response, Class<T> returnType){
+    public <T> EsResponse<T> analysisResponse(SearchResponse response, Class<T> returnType) {
         EsResponse result = new EsResponse();
         SearchHit[] hits = response.getHits().getHits();
         TotalHits totalHits = response.getHits().getTotalHits();
@@ -115,5 +121,42 @@ public class EsRelearnTest {
         }
         result.setPayload(payload);
         return result;
+    }
+
+    @Test
+    public void testMetric() throws IOException {
+        SearchRequest request = new SearchRequest("hotel");
+        // 我不希望返回文档，我只想知道评分的聚合
+        request.source().size(0)
+                .aggregation(
+                        AggregationBuilders.stats("MyScore").field("score")
+                );
+        SearchResponse response = restHighLevelClient.search(request, RequestOptions.DEFAULT);
+
+        Aggregations aggregations = response.getAggregations();
+        // 根据上面的聚合自定义名称，获取对应的聚合结果，注意要用ES的aggregations.metrics.Stats接收
+        Stats stats = aggregations.get("MyScore");
+        System.out.println(JSONObject.toJSONString(stats));
+    }
+
+    @Test
+    public void testBucket() throws IOException {
+        SearchRequest request = new SearchRequest("hotel");
+        // 我不希望返回文档，我只想知道品牌的聚合
+        request.source().size(0)
+                .aggregation(
+                        AggregationBuilders.terms("MyBrand").field("brand")
+                );
+        SearchResponse response = restHighLevelClient.search(request, RequestOptions.DEFAULT);
+
+        Aggregations aggregations = response.getAggregations();
+        // 根据上面的聚合自定义名称，获取对应的聚合结果，注意用ES的aggregations.metrics.Terms接收
+        Terms brandTerms = aggregations.get("MyBrand");
+        List<? extends Terms.Bucket> buckets = brandTerms.getBuckets();
+        for (Terms.Bucket bucket : buckets) {
+            String keyAsString = bucket.getKeyAsString();
+            long docCount = bucket.getDocCount();
+            System.out.println(String.format("品牌%s包含的文档数：%s", keyAsString, docCount));
+        }
     }
 }

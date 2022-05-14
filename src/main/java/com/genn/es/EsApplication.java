@@ -8,7 +8,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
 @MapperScans({
-        @MapperScan("com.genn.es.Repository")
+        @MapperScan("com.genn.es.repository")
 })
 public class EsApplication {
 
